@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@/types'
+import type { ChatMessage, Prompt } from '@/types'
 import { createSignal, Index, Show, onMount, onCleanup } from 'solid-js'
 import IconClear from './icons/Clear'
 import MessageItem from './MessageItem'
@@ -14,9 +14,23 @@ export default () => {
   const [currentAssistantMessage, setCurrentAssistantMessage] = createSignal('')
   const [loading, setLoading] = createSignal(false)
   const [controller, setController] = createSignal<AbortController>(null)
-
+  const [showPanel, setShowPanel] = createSignal(false)
+  const [promptList, setPromptList] = createSignal<Prompt[]>([])
 
   onMount(() => {
+
+    setPromptList([
+      ...promptList(),
+      {
+        id: 1,
+        content: '帮我用sql查询下。。'
+      },
+      {
+        id: 2,
+        content: '帮我根据这篇文献《...》，看下如何...'
+      }
+    ])
+
     try {
       if (localStorage.getItem('messageList')) {
         setMessageList(JSON.parse(localStorage.getItem('messageList')))
@@ -40,6 +54,7 @@ export default () => {
   }
 
   const handleButtonClick = async () => {
+    setShowPanel(false)
     const inputValue = inputRef.value
     if (!inputValue) {
       return
@@ -174,6 +189,11 @@ export default () => {
     }
   }
 
+  const selectPrompt = (prompt) => {
+    setShowPanel(false)
+    inputRef.value = prompt().content
+  }
+
   return (
     <div my-6>
       <SystemRoleSettings
@@ -199,6 +219,22 @@ export default () => {
           message={currentAssistantMessage}
         />
       )}
+
+      <Show when={showPanel()}>
+        <div>
+          <Index each={promptList()}>
+            {(prompt, index) => (
+              <div 
+              onClick={() => selectPrompt(prompt)} 
+              class="py-2 -mx-4 px-4 transition-colors md:hover:bg-blue-600 bg-slate/3">
+                {prompt().content}
+              </div>
+            )}
+          </Index>
+        </div>
+      </Show>
+
+
       <Show
         when={!loading()}
         fallback={() => (
@@ -219,6 +255,9 @@ export default () => {
             onInput={() => {
               inputRef.style.height = 'auto';
               inputRef.style.height = inputRef.scrollHeight + 'px';
+            }}
+            onClick={()=>{
+              setShowPanel(true)
             }}
             rows="1"
             class='gen-textarea'
